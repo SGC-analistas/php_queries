@@ -1,0 +1,18 @@
+Select POEv.publicID, Pick.waveformID_networkCode, 
+Pick.waveformID_stationCode,
+Pick.waveformID_locationCode,
+Pick.waveformID_channelCode, 
+Arrival.phase_code, Pick.time_value, Pick.time_value_ms
+from Event AS EvMF left join PublicObject AS POEv ON EvMF._oid = POEv._oid 
+left join PublicObject as POOri ON EvMF.preferredOriginID=POOri.publicID 
+left join Origin ON POOri._oid=Origin._oid 
+left join PublicObject as POMag on EvMF.preferredMagnitudeID=POMag.publicID 
+left join Magnitude ON Magnitude._oid = POMag._oid 
+left join Arrival on Arrival._parent_oid=Origin._oid 
+left join PublicObject as POOri1 on POOri1.publicID = Arrival.pickID 
+left join Pick on Pick._oid= POOri1._oid 
+where 
+Pick.phaseHint_used = 1 
+AND Pick.evaluationMode = 'manual' 
+AND Arrival.phase_code = 'P' 
+AND POEv.PublicID = '%s'

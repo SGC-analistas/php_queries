@@ -1,0 +1,28 @@
+Select Origin.creationInfo_agencyID as agency,
+    POEv.publicID as id,
+    Origin.time_value as time_event, 
+    convert(cast(convert(EventDescription.text using latin1) as binary) using utf8) as Region,
+    round(Origin.latitude_value,2) as Latitud,ROUND(Origin.longitude_value,2) as longitud, round(Origin.depth_value,0) as Profundidad,
+    round(Magnitude.magnitude_value,1) as Magnitud,
+    Event.type as type,
+    Origin.quality_standardError as rms,
+    Origin.depth_uncertainty as depth_uncertainty,
+    Origin.latitude_uncertainty as latitude_uncertainty,
+    Origin.longitude_uncertainty as longitude_uncertainty,
+    round(( 6371 * acos(cos(radians( %s)) * cos(radians(Origin.latitude_value)) * cos(radians(Origin.longitude_value) - 
+    radians(%s)) + sin(radians( %s)) * sin(radians(Origin.latitude_value)))),2) as radio
+    from Event AS EvMF left join PublicObject AS POEv ON EvMF._oid = POEv._oid 
+    left join PublicObject as POOri ON EvMF.preferredOriginID=POOri.publicID 
+    left join Origin ON POOri._oid=Origin._oid 
+    left join PublicObject as POMag on EvMF.preferredMagnitudeID=POMag.publicID
+    left join Magnitude ON Magnitude._oid = POMag._oid 
+    left join EventDescription ON EvMF._oid=EventDescription._parent_oid
+    left join Event ON Event._oid= POEv._oid
+    
+
+    where (Magnitude.magnitude_value>%s) AND
+    (Magnitude.magnitude_value<%s) AND
+    Origin.depth_value>%s AND
+    Origin.depth_value<%s AND
+    Origin.time_value between %s and %s 
+    HAVING radio < %s;
