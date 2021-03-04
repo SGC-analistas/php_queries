@@ -1,0 +1,26 @@
+Select Origin.creationInfo_agencyID as agency, 
+        POEv.publicID as id, 
+        Origin.time_value as time_event, 
+        round(Origin.latitude_value,2) as latitude,
+        round(Origin.longitude_value,2) as longitude,
+        Origin.depth_value as depth,
+        round(Magnitude.magnitude_value,2) as magnitude,
+        Origin.quality_standardError as rms,
+        Origin.depth_uncertainty as depth_uncertainty,
+        Origin.latitude_uncertainty as latitude_uncertainty,
+        Origin.longitude_uncertainty as longitude_uncertainty,
+        convert(cast(convert(EventDescription.text using latin1) as binary) using utf8) as Region,
+        Event.type as type
+        from Event AS EvMF left join PublicObject AS POEv ON EvMF._oid = POEv._oid 
+        left join PublicObject as POOri ON EvMF.preferredOriginID=POOri.publicID 
+        left join Origin ON POOri._oid=Origin._oid 
+        left join PublicObject as POMag on EvMF.preferredMagnitudeID=POMag.publicID 
+        left join Magnitude ON Magnitude._oid = POMag._oid 
+        left join EventDescription ON EvMF._oid=EventDescription._parent_oid
+        left join Event ON Event._oid= POEv._oid
+        where 
+        Magnitude.magnitude_value>%s AND
+        Magnitude.magnitude_value<%s AND
+        Origin.depth_value>%s AND
+        Origin.depth_value<%s AND
+        Origin.time_value between %s and %s

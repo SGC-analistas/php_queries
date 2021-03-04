@@ -5,7 +5,7 @@ from obspy import UTCDateTime
 from datetime import timedelta
 
 pick_codex = os.path.join(os.getcwd(),"query_picks.txt")
-# event_codex = 
+event_codex = os.path.join(os.getcwd(),"query_events.txt")
 
 def get_text2php(from_text,rm_line=None, add_line=None):
     """
@@ -77,36 +77,13 @@ def get_timepick(df,pick):
              timedelta(milliseconds=float(df[f'time_ms_pick_{pick}']/1000))
         return UTCDateTime(pick)
 
-def add_event_type(event_type):
-        condition = ("Event.type = '%s' AND")%(event_type)
-        return [(42,condition)]
-        
-def add_radial_query(latitude,longitude,radio):
-    select = "round(( 6371 * acos(cos(radians( %s)) * cos(radians(Origin.latitude_value)) * cos(radians(Origin.longitude_value) - radians(%s)) + sin(radians( %s)) * sin(radians(Origin.latitude_value)))),2) as radio,"
-    select = select%(f'{latitude}',f'{longitude}',f'{latitude}')
-    condition = "HAVING radio < %s;"
-    condition = condition%(radio)
-    return [(7,select),(45,condition)]
-
-def add_station_list(station_list):
-    if len(station_list) == 1:
-        station_list = f"('{station_list[0]}')"
-    else:
-        station_list = str(tuple(station_list))
-    condition = ("pick_p.waveformID_stationCode in %s AND")%(station_list)
-    return [(42,condition)]
-
-def add_id_query(loc_id):
-    condition = "POEv.PublicID = '%s' AND"%(loc_id)
-    return [(40,condition)]
-
 def str2datetime(mydatetime):
     date,hour = mydatetime.split()
     year,month,day,hour,minute,sec = date[0:4],date[4:6],date[6:8],hour[0:2],hour[2:4],hour[4:6]
     return f"{year}/{month}/{day} {hour}:{minute}:{sec}"
     
-class PickQuery(object):
-    def __init__(self,initial_date,final_date,  
+class QueryHelper(object):
+    def __init__(self,query,initial_date,final_date,  
                     min_mag,max_mag,min_prof,max_prof,
                     event_type=None,station_list=None):
         """
@@ -129,6 +106,7 @@ class PickQuery(object):
         station_list: list
             Only select stations located in station_list
         """
+        self.query = query
         self.initial_date = str2datetime(initial_date)
         self.final_date = str2datetime(final_date)
         self.min_mag = min_mag
@@ -138,26 +116,87 @@ class PickQuery(object):
         self.event_type = event_type
         self.station_list = station_list
 
-        pick_text = open(pick_codex,"r", encoding="latin-1").readlines()
-        pick_text = get_text2php(pick_text)
-        self.pick_text = str(pick_text)%(f'{self.min_mag}',f'{self.max_mag}',
+        self.__P_eventtype_lines = [42] #42 in where
+        self.__P_radialquery_lines = [7,45] #7 in select, 45 in where
+        self.__P_stationlist_lines = [42] #42 in where
+        self.__P_idquery_lines = [40] #40 in where
+
+        self.__E_eventtype_lines = [22] #42 in where
+        self.__E_radialquery_lines = [7,26] #7 in select, 45 in where
+        self.__E_stationlist_lines = [22] #42 in where
+        self.__E_idquery_lines = [22] #40 in where
+
+        if self.query in ("pick","PICK","Pick","picks","Picks"):
+            query_text = open(pick_codex,"r", encoding="latin-1").readlines()
+        elif self.query in ("event","Event","EVENT","events","EVENTS"):
+            self.station_list = None
+            query_text = open(event_codex,"r", encoding="latin-1").readlines()
+        else:
+            raise Exception("query= 'pick' or 'Event'")
+        
+        query_text = get_text2php(query_text)
+        self.query_text = str(query_text)%(f'{self.min_mag}',f'{self.max_mag}',
                                 f'{self.min_prof}',f'{self.max_prof}',
                                 f'"{self.initial_date}"',
                                 f'"{self.final_date}"')
+        
     
+    def __add_event_type(self,event_type):
+        condition = ("Event.type = '%s' AND")%(event_type)
+
+        if self.query in ("pick","PICK","Pick","picks","Picks"):
+            lines = self.__P_eventtype_lines
+        elif self.query in ("event","Event","EVENT","events","EVENTS"):
+            lines = self.__E_eventtype_lines
+
+        return [(lines[0],condition)]
+
+    def __add_radial_query(self,latitude,longitude,radio):
+        select = "round(( 6371 * acos(cos(radians( %s)) * cos(radians(Origin.latitude_value)) * cos(radians(Origin.longitude_value) - radians(%s)) + sin(radians( %s)) * sin(radians(Origin.latitude_value)))),2) as radio,"
+        select = select%(f'{latitude}',f'{longitude}',f'{latitude}')
+        condition = "HAVING radio < %s;"
+        condition = condition%(radio)
+        if self.query in ("pick","PICK","Pick","picks","Picks"):
+                lines = self.__P_radialquery_lines
+        elif self.query in ("event","Event","EVENT","events","EVENTS"):
+            lines = self.__E_radialquery_lines
+        return [(lines[0],select),(lines[1],condition)]
+
+    def __add_station_list(self,station_list):
+        if len(station_list) == 1:
+            station_list = f"('{station_list[0]}')"
+        else:
+            station_list = str(tuple(station_list))
+
+        condition = ("pick_p.waveformID_stationCode in %s AND")%(station_list)
+
+        if self.query in ("pick","PICK","Pick","picks","Picks"):
+                lines = self.__P_stationlist_lines
+        elif self.query in ("event","Event","EVENT","events","EVENTS"):
+            lines = self.__E_stationlist_lines
+
+        return [(lines[0],condition)]
+
+    def __add_id_query(self,loc_id):
+        condition = "POEv.PublicID = '%s' AND"%(loc_id)
+        if self.query in ("pick","PICK","Pick","picks","Picks"):
+                lines = self.__P_stationlist_lines
+        elif self.query in ("event","Event","EVENT","events","EVENTS"):
+            lines = self.__E_stationlist_lines
+        return [(lines[0],condition)]
 
     def query(self):
-        text = self.pick_text
+        text = self.query_text
 
         if self.event_type != None:
             text = io.StringIO(text).readlines()
-            event_info = add_event_type(self.event_type)
+            event_info = self.__add_event_type(self.event_type)
             text = get_text2php(from_text=text,
                                 add_line=event_info)
 
         if self.station_list != None:
             text = io.StringIO(text).readlines()
-            stalist_info = add_station_list(self.station_list)
+            stalist_info = self.__add_station_list(self.station_list)
             text = get_text2php(from_text=text,
                                          add_line=stalist_info)
         return text
@@ -173,20 +212,20 @@ class PickQuery(object):
         text: str
             formatted text with ID
         """
-        text = io.StringIO(self.pick_text).readlines()
-        id_text = add_id_query(loc_id)
+        text = io.StringIO(self.query_text).readlines()
+        id_text = self.__add_id_query(loc_id)
         text = get_text2php(from_text=text,
                                 add_line=id_text)
 
         if self.event_type != None:
             text = io.StringIO(text).readlines()
-            event_info = add_event_type(self.event_type)
+            event_info = self.__add_event_type(self.event_type)
             text = get_text2php(from_text=text,
                                 add_line=event_info)
 
         if self.station_list != None:
             text = io.StringIO(text).readlines()
-            stalist_info = add_station_list(self.station_list)
+            stalist_info = self.__add_station_list(self.station_list)
             text = get_text2php(from_text=text,
                                          add_line=stalist_info)
         return text
@@ -207,20 +246,20 @@ class PickQuery(object):
             text: str
                 formatted text with ID
         """
-        text = io.StringIO(self.pick_text).readlines()
-        radial_text = add_radial_query(lat, lon, radio)
+        text = io.StringIO(self.query_text).readlines()
+        radial_text = self.__add_radial_query(lat, lon, radio)
         text = get_text2php(from_text=text,
                                 add_line=radial_text)
                         
         if self.event_type != None:
             text = io.StringIO(text).readlines()
-            event_info = add_event_type(self.event_type)
+            event_info = self.__add_event_type(self.event_type)
             text = get_text2php(from_text=text,
                                 add_line=event_info)
 
         if self.station_list != None:
             text = io.StringIO(text).readlines()
-            stalist_info = add_station_list(self.station_list)
+            stalist_info = self.__add_station_list(self.station_list)
             text = get_text2php(from_text=text,
                                          add_line=stalist_info)
         return text

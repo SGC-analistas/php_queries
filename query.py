@@ -30,9 +30,10 @@ def read_params(par_file='phaseNet.inp'):
             par_dic[key.strip()] = value.strip()
     return par_dic
 
-class Picks(object):
-    def __init__(self,MySQLdb_dict):
+class Query(object):
+    def __init__(self,MySQLdb_dict,query):
         self.MySQLdb_dict= MySQLdb_dict
+        self.query = query
 
     @property
     def MySQLdb(self):
@@ -53,13 +54,17 @@ class Picks(object):
         if station_list == "sgc_public":
             station_list = SGC_PUBLIC_STATIONS 
 
-        pickquery = utq.PickQuery(initial_date, final_date, 
+        query = utq.QueryHelper(self.query,initial_date, final_date, 
                               min_mag, max_mag, min_prof, max_prof,
                               event_type,station_list)
-        codex = pickquery.query()
+        codex = query.query()
         simple_query = pd.read_sql_query(codex,self.MySQLdb)
 
-        df = utq.get_fulltime(simple_query)
+        if self.query in ("pick","PICK","Pick","picks","Picks"):
+            df = utq.get_fulltime(simple_query)
+        elif self.query in ("event","Event","EVENT","events","EVENTS"):
+            df = simple_query
+
         if sort != None:   
             df = df.sort_values(by=sort,ascending=True)
         if to_csv != None:
@@ -81,13 +86,17 @@ class Picks(object):
         if station_list == "sgc_public":
             station_list = SGC_PUBLIC_STATIONS 
 
-        pickquery = utq.PickQuery(initial_date, final_date, 
+        query = utq.QueryHelper(self.query,initial_date, final_date, 
                               min_mag, max_mag, min_prof, max_prof,
                               event_type,station_list)
-        codex = pickquery.id_query(loc_id)
+        codex = query.id_query(loc_id)
         id_query = pd.read_sql_query(codex,self.MySQLdb)
 
-        df = utq.get_fulltime(id_query)
+        if self.query in ("pick","PICK","Pick","picks","Picks"):
+            df = utq.get_fulltime(id_query)
+        elif self.query in ("event","Event","EVENT","events","EVENTS"):
+            df = id_query
+
         if sort != None:   
             df = df.sort_values(by=sort,ascending=True)
         if to_csv != None:
@@ -95,7 +104,6 @@ class Picks(object):
                 csv.write(f'#{self.info}\n')
             df.to_csv(to_csv, mode='a')
         return df
-
 
     def radial_SQLquery(self,lat, lon, ratio, initial_date, final_date, 
                       min_mag, max_mag, min_prof, max_prof, 
@@ -111,13 +119,17 @@ class Picks(object):
         if station_list == "sgc_public":
             station_list = SGC_PUBLIC_STATIONS 
 
-        pickquery = utq.PickQuery(initial_date, final_date, 
+        query = utq.QueryHelper(self.query,initial_date, final_date, 
                               min_mag, max_mag, min_prof, max_prof,
                               event_type,station_list)
-        codex = pickquery.radial_query(lat, lon, ratio)
+        codex = query.radial_query(lat, lon, ratio)
         radial_query = pd.read_sql_query(codex,self.MySQLdb)
 
-        df = utq.get_fulltime(radial_query)
+        if self.query in ("pick","PICK","Pick","picks","Picks"):
+            df = utq.get_fulltime(radial_query)
+        elif self.query in ("event","Event","EVENT","events","EVENTS"):
+            df = radial_query
+            
         if sort != None:   
             df = df.sort_values(by=sort,ascending=True)
         if to_csv != None:
@@ -126,53 +138,6 @@ class Picks(object):
             df.to_csv(to_csv, mode='a')
         return df
 
-
-class Events(object):
-    def __init__(self,MySQLdb_dict, lat, lon, ratio, 
-        initial_date, final_date, min_mag, max_mag,
-         min_prof, max_prof, sort=None ):
-        self.MySQLdb_dict= MySQLdb_dict
-        # self.MySQLdb= MySQLdb.connect(host=self.MySQLdb_dict['host'], user=self.MySQLdb_dict['user'], 
-                                        # passwd=self.MySQLdb_dict['passwd'], db=self.MySQLdb_dict['db'])
-        self.host= self.MySQLdb_dict['host']
-        self.lat, self.lon, self.ratio = lat, lon, ratio
-        self.initial_date, self.final_date= initial_date, final_date
-        self.min_mag, self.max_mag= min_mag, max_mag
-        self.min_prof, self.max_prof= min_prof, max_prof
-
-        _codex = phpmyAdmin(os.path.join(os.getcwd(),"queries","query_by_param.txt"))
-        self.codex= _codex.radial_query(lat, lon, ratio, initial_date, final_date, min_mag, max_mag, min_prof, max_prof)
-
-    @property
-    def MySQLdb(self):
-        db= MySQLdb.connect(host=self.MySQLdb_dict['host'], user=self.MySQLdb_dict['user'], 
-                              passwd=self.MySQLdb_dict['passwd'], db=self.MySQLdb_dict['db'])
-        return db
-
-    @property
-    def SQL_Query(self):
-        SQL_Query = pd.read_sql_query(self.codex,self.MySQLdb)
-        return SQL_Query
-
-    @property
-    def info(self):
-        info= f'lat={self.lat},lon={self.lon},ratio={self.ratio},initial_date={self.initial_date},final_date={self.final_date},min_mag={self.min_mag},max_mag={self.max_mag},min_prof={self.min_prof},max_prof={self.max_prof}'
-        return info
-
-    def to_DataFrame(self,sort=None):
-        df = pd.DataFrame(self.SQL_Query)
-        df.index+=1
-        df.index.name= 'No'
-        if sort != None:   
-            df = df.sort_values(by=sort,ascending=True)
-        return df
-
-    def to_csv(self,csv_name,sort= None):
-        df = self.to_DataFrame(sort)
-        with open(csv_name,'w') as csv:   
-            csv.write(f'#{self.info}\n')
-        df.to_csv(csv_name, mode='a')
-    
 if __name__ == "__main__":
 
     # nido de los santos
@@ -181,8 +146,8 @@ if __name__ == "__main__":
     # 6.81 y -73.1 radio 0.5°-> 60km
     # 5.2 y -73.7 radio 0.5°-> 60km
 ## GLOBAL VARIBALES
-    picks = True
-    events = False
+    picks = False
+    events = True
     start = "20210201 000000"
     end =   "20210228 000000"
     output_path = "/home/ecastillo/repositories/gprieto"
@@ -226,21 +191,19 @@ if __name__ == "__main__":
     if events == True:
         name = f"{agency}_events_{_startname}_{_endname}.csv"
         csv_path = os.path.join(output_path,name)
-        evs = Events(MySQLdb_dict, lat, lon, ratio, 
-                    start, end, 
-                    min_mag, max_mag, 
-                    min_prof, max_prof )
-        evs.to_csv(csv_path,['time_event'])
+        events = Query(MySQLdb_dict,"events").id_SQLquery("SGC2021ceyptl",
+                                                    start, end, 
+                                                    min_mag, max_mag, 
+                                                    min_prof, max_prof,
+                                                    "earthquake", "sgc_public",
+                                                    ['time_event'],
+                                                    csv_path)
+        print(events)
     if picks == True:
         name = f"{agency}_picks_{_startname}_{_endname}.csv"
         csv_path = os.path.join(output_path,name)
-        # picks = Picks(MySQLdb_dict).simple_SQLquery(start, end, 
-        #                                             min_mag, max_mag, 
-        #                                             min_prof, max_prof,
-        #                                             "earthquake", "sgc_public",
-        #                                             ['time_event','time_pick_p'],
-        #                                             csv_path)
-        picks = Picks(MySQLdb_dict).id_SQLquery(    "SGC2021ceyptl",
+        
+        picks = Query(MySQLdb_dict,"picks").id_SQLquery(    "SGC2021ceyptl",
                                                     start, end, 
                                                     min_mag, max_mag, 
                                                     min_prof, max_prof,
