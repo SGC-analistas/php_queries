@@ -17,19 +17,6 @@ SGC_PUBLIC_STATIONS = ['APAC','ARGC','BAR2','BBAC','BET',
                     'RNCC','RUS','SAIC','SERC','SJC','SMAR','SOL','SPBC',
                     'TAM','TUM','TUM3C','URE','URI','URMC','VIL','YOT',
                     'YPLC','ZAR']
-
-def read_params(par_file='phaseNet.inp'):
-    lines = open(par_file).readlines()
-    par_dic = {}
-    for line in lines:
-        if line[0] == '#' or line.strip('\n').strip() == '':
-            continue
-        else:
-            l = line.strip('\n').strip()
-            key, value = l.split('=')
-            par_dic[key.strip()] = value.strip()
-    return par_dic
-
 class Query(object):
     def __init__(self,MySQLdb_dict,query):
         self.MySQLdb_dict= MySQLdb_dict
