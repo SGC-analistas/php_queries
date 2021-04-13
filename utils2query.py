@@ -116,10 +116,10 @@ class QueryHelper(object):
         self.event_type = event_type
         self.station_list = station_list
 
-        self.__P_eventtype_lines = [42] #42 in where
-        self.__P_radialquery_lines = [7,45] #7 in select, 45 in where
-        self.__P_stationlist_lines = [42] #42 in where
-        self.__P_idquery_lines = [40] #40 in where
+        self.__P_eventtype_lines = [46] #42 in where
+        self.__P_radialquery_lines = [15,49] #7 in select, 45 in where
+        self.__P_stationlist_lines = [46] #42 in where
+        self.__P_idquery_lines = [46] #40 in where
 
         self.__E_eventtype_lines = [22] #42 in where
         self.__E_radialquery_lines = [7,26] #7 in select, 45 in where
@@ -185,7 +185,7 @@ class QueryHelper(object):
             lines = self.__E_stationlist_lines
         return [(lines[0],condition)]
 
-    def query(self):
+    def simple_query(self):
         text = self.query_text
 
         if self.event_type != None:

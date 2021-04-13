@@ -2,15 +2,19 @@ Select Origin.creationInfo_agencyID as agency,
         POEv.publicID as id, 
         Origin.time_value as time_event, 
         round(Origin.latitude_value,2) as latitude,
-        round(Origin.longitude_value,2) as longitude,
-        Origin.depth_value as depth,
-        round(Magnitude.magnitude_value,2) as magnitude,
-        Origin.quality_standardError as rms,
-        Origin.depth_uncertainty as depth_uncertainty,
         Origin.latitude_uncertainty as latitude_uncertainty,
+        round(Origin.longitude_value,2) as longitude,
         Origin.longitude_uncertainty as longitude_uncertainty,
-        convert(cast(convert(EventDescription.text using latin1) as binary) using utf8) as Region,
-        Event.type as type,
+        Origin.depth_value as depth,
+        Origin.depth_uncertainty as depth_uncertainty,
+        Origin.quality_standardError as rms,
+        convert(cast(convert(EventDescription.text using latin1) as binary) using utf8) as region,
+        Origin.earthModelID as earth_model,
+        Origin.methodID as method,
+        Event.type as event_type,
+        round(Magnitude.magnitude_value,2) as magnitude,
+        Magnitude.type as magnitude_type,
+        Origin.creationInfo_author as picker,
         pick_p.waveformID_networkCode as network, 
         pick_p.waveformID_stationCode as station, 
         pick_p.waveformID_locationCode as location, 
@@ -29,7 +33,7 @@ Select Origin.creationInfo_agencyID as agency,
         left join EventDescription ON EvMF._oid=EventDescription._parent_oid
         left join Event ON Event._oid= POEv._oid
         left join Arrival A_p on A_p._parent_oid=Origin._oid and A_p.phase_code = 'P' 
-        inner join Arrival A_s on A_s._parent_oid=A_p._parent_oid and A_s.phase_code = 'S' 
+        left join Arrival A_s on A_s._parent_oid=A_p._parent_oid and A_s.phase_code = 'S' 
         left join PublicObject as POOri1 on POOri1.publicID = A_p.pickID 
         left join PublicObject as POOri2 on POOri2.publicID = A_s.pickID 
         left join Pick pick_p on pick_p._oid = POOri1._oid 

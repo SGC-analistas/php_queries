@@ -8,15 +8,17 @@ import pandas as pd
 import utils2query as utq
 from obspy import UTCDateTime
 
-SGC_PUBLIC_STATIONS = ['APAC','ARGC','BAR2','BBAC','BET',
-                    'BRJC','CAP2','CBETA','CBOC','CHI','CPOP2',
-                    'CPRAD','CRJC','CRU','CUM','DBB','FLO2','GARC',
+SGC_PUBLIC_STATIONS = ['APAC','AGCC','ARGC','ARMEC','BAR2','BBAC','BET','BOG',
+                    'BRJC','CAP2','CCALA','CBETA','CBOC','CHI','CLBC','CLEJA','CPOP2',
+                    'CPRAD','CRJC','CRU','CUM','DBB','EZNC','FLO2','GARC',
                     'GR1C','GRPC','GUA','GUY2C','HEL','JAMC','LCBC','MACC',
-                    'MAL','MAP','NOR','OCA','ORTC','PAL','PAM','PIZC',
+                    'MAL','MAN1C','MAP','MEDEC','NIZA','NOR','OCA','ORTC','PAL','PAM','PAS2','PDSC','PGA1B','PIZC',
                     'POP2','PRA','PRV','PTA','PTB','PTGC','PTLC','QUBC',
-                    'RNCC','RUS','SAIC','SERC','SJC','SMAR','SOL','SPBC',
+                    'RECRC','RNCC','RUS','SAIC','SERC','SJC','SMAR','SOL','SPBC',
                     'TAM','TUM','TUM3C','URE','URI','URMC','VIL','YOT',
-                    'YPLC','ZAR']
+                    'YPLC','ZAR','VMM05','VMM06','VMM07','VMM08',
+                    'VMM09','VMM10','VMM11','VMM12']
+                    
 class Query(object):
     def __init__(self,MySQLdb_dict,query):
         self.MySQLdb_dict= MySQLdb_dict
@@ -44,7 +46,7 @@ class Query(object):
         query = utq.QueryHelper(self.query,initial_date, final_date, 
                               min_mag, max_mag, min_prof, max_prof,
                               event_type,station_list)
-        codex = query.query()
+        codex = query.simple_query()
         simple_query = pd.read_sql_query(codex,self.MySQLdb)
 
         if self.query in ("pick","PICK","Pick","picks","Picks"):
@@ -133,20 +135,20 @@ if __name__ == "__main__":
     # 6.81 y -73.1 radio 0.5°-> 60km
     # 5.2 y -73.7 radio 0.5°-> 60km
 ## GLOBAL VARIBALES
-    picks = False
-    events = True
-    start = "20210201 000000"
-    end =   "20210228 000000"
-    output_path = "/home/ecastillo/repositories/gprieto"
-    agency = "SGC_cucunuba"
+    picks =True 
+    events = False
+    start = "20191201 000000"
+    end =   "20210101 000000"
+    output_path = "/home/ecastillo/tesis/catalog/manual/events/"
+    agency = "SGC"
 
-    lat = 5.2
-    lon = -73.4
-    ratio = 60
-    min_mag =  0.1
+    lat = 6.81
+    lon = -73.17
+    ratio = 120
+    min_mag =  -0.2
     max_mag = 10
-    min_prof =  0
-    max_prof = 200
+    min_prof =  120
+    max_prof = 160
 
     # ## GLOBAL VARIBALES
     # picks = True
@@ -178,7 +180,7 @@ if __name__ == "__main__":
     if events == True:
         name = f"{agency}_events_{_startname}_{_endname}.csv"
         csv_path = os.path.join(output_path,name)
-        events = Query(MySQLdb_dict,"events").id_SQLquery("SGC2021ceyptl",
+        events = Query(MySQLdb_dict,"events").radial_SQLquery(lat,lon,ratio,
                                                     start, end, 
                                                     min_mag, max_mag, 
                                                     min_prof, max_prof,
@@ -186,15 +188,22 @@ if __name__ == "__main__":
                                                     ['time_event'],
                                                     csv_path)
         print(events)
+        # (self,lat, lon, ratio, initial_date, final_date, 
+        #               min_mag, max_mag, min_prof, max_prof, 
+        #               event_type=None,station_list=None,
+        #               sort = None,to_csv=None):
+
+
+
     if picks == True:
         name = f"{agency}_picks_{_startname}_{_endname}.csv"
         csv_path = os.path.join(output_path,name)
         
-        picks = Query(MySQLdb_dict,"picks").id_SQLquery(    "SGC2021ceyptl",
+        picks = Query(MySQLdb_dict,"picks").simple_SQLquery(
                                                     start, end, 
                                                     min_mag, max_mag, 
                                                     min_prof, max_prof,
-                                                    "earthquake", "sgc_public",
-                                                    ['time_event','time_pick_p'],
+                                                    None, "sgc_public",
+                                                    ['time_event'],
                                                     csv_path)
         print(picks)
