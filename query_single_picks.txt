@@ -1,0 +1,41 @@
+Select Origin.creationInfo_agencyID as agency, 
+        POEv.publicID as id, 
+        Origin.time_value as time_event, 
+        round(Origin.latitude_value,2) as latitude,
+        Origin.latitude_uncertainty as latitude_uncertainty,
+        round(Origin.longitude_value,2) as longitude,
+        Origin.longitude_uncertainty as longitude_uncertainty,
+        Origin.depth_value as depth,
+        Origin.depth_uncertainty as depth_uncertainty,
+        Origin.quality_standardError as rms,
+        convert(cast(convert(EventDescription.text using latin1) as binary) using utf8) as region,
+        Origin.earthModelID as earth_model,
+        Origin.methodID as method,
+        Event.type as event_type,
+        round(Magnitude.magnitude_value,2) as magnitude,
+        Magnitude.type as magnitude_type,
+        Origin.creationInfo_author as picker,
+        pick.waveformID_networkCode as network, 
+        pick.waveformID_stationCode as station, 
+        pick.waveformID_locationCode as location, 
+        pick.waveformID_channelCode as channel, 
+        A_p.phase_code as pick, 
+        pick.time_value as time_pick, 
+        pick.time_value_ms as time_ms_pick
+        from Event AS EvMF left join PublicObject AS POEv ON EvMF._oid = POEv._oid 
+        left join PublicObject as POOri ON EvMF.preferredOriginID=POOri.publicID 
+        left join Origin ON POOri._oid=Origin._oid 
+        left join PublicObject as POMag on EvMF.preferredMagnitudeID=POMag.publicID 
+        left join Magnitude ON Magnitude._oid = POMag._oid 
+        left join EventDescription ON EvMF._oid=EventDescription._parent_oid
+        left join Event ON Event._oid= POEv._oid
+        left join Arrival A_p on A_p._parent_oid=Origin._oid and A_p.phase_code = 'P' 
+        left join PublicObject as POOri1 on POOri1.publicID = A_p.pickID 
+        left join Pick pick on pick._oid = POOri1._oid 
+        where pick.phaseHint_used = 1 AND 
+        pick.evaluationMode = 'manual' AND 
+        Magnitude.magnitude_value>%s AND
+        Magnitude.magnitude_value<%s AND
+        Origin.depth_value>%s AND
+        Origin.depth_value<%s AND
+        Origin.time_value between %s and %s

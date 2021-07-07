@@ -19,6 +19,12 @@ SGC_PUBLIC_STATIONS = ['APAC','AGCC','ARGC','ARMEC','BAR2','BBAC','BET','BOG',
                     'YPLC','ZAR','VMM05','VMM06','VMM07','VMM08',
                     'VMM09','VMM10','VMM11','VMM12']
                     
+
+VMM_stations = ['AGCC','EZNC','SNPBC','MORC','OCNC','SML1C','VMM05','VMM06',
+                'VMM07','VMM08','VMM09','VMM10','VMM11','VMM12','VMM13','BRR',
+                'LL1C','LL5C','LL6C','LL7C','LL8C','OCA','PAM','BAR2','PTB','ZAR',
+                'RUS','SPBC','NOR','HEL']
+
 class Query(object):
     def __init__(self,MySQLdb_dict,query):
         self.MySQLdb_dict= MySQLdb_dict
@@ -33,7 +39,7 @@ class Query(object):
     def simple_SQLquery(self,initial_date, final_date,
                         min_mag, max_mag, min_prof, max_prof,
                         event_type=None,station_list=None,
-                        sort = None,to_csv=None):
+                        sort = None,merge_picks="inner",to_csv=None):
 
         self.info = f'initial_date={initial_date},final_date={final_date},'+\
             f'min_mag={min_mag},max_mag={max_mag},'+\
@@ -43,20 +49,48 @@ class Query(object):
         if station_list == "sgc_public":
             station_list = SGC_PUBLIC_STATIONS 
 
-        query = utq.QueryHelper(self.query,initial_date, final_date, 
-                              min_mag, max_mag, min_prof, max_prof,
-                              event_type,station_list)
-        codex = query.simple_query()
-        simple_query = pd.read_sql_query(codex,self.MySQLdb)
+        if merge_picks == "inner":
 
-        if self.query in ("pick","PICK","Pick","picks","Picks"):
+            query = utq.QueryHelper(self.query,initial_date, final_date, 
+                                min_mag, max_mag, min_prof, max_prof,
+                                event_type,station_list)
+            codex = query.simple_query()
+            simple_query = pd.read_sql_query(codex,self.MySQLdb)
             df = utq.get_fulltime(simple_query)
-        elif self.query in ("event","Event","EVENT","events","EVENTS"):
+        else:
+            dfs = {}
+            for phase in ['P','S']:
+
+                query = utq.QueryHelper("single_picks",initial_date, final_date, 
+                                    min_mag, max_mag, min_prof, max_prof,
+                                    event_type,station_list,phase)
+                codex = query.simple_query()
+                simple_query = pd.read_sql_query(codex,self.MySQLdb)
+
+                df = utq.get_fulltime(simple_query,True)
+                # df.rename(columns={ 'time_pick':f'time_pick_{phase.lower()}',
+                #                 'time_ms_pick':f'time_ms_pick_{phase.lower()}',
+                #                 'pick':f'pick_{phase.lower()}'}, inplace=True)
+                # df.to_csv(f"/home/ecastillo/tesis/catalog/manual/events/{phase}.csv")
+                dfs[phase] = df
+                # dfs.append(df)
+
+            df = pd.merge(dfs["P"],dfs["S"],on=['agency','id','time_event','latitude','latitude_uncertainty',
+            'longitude','longitude_uncertainty','depth','depth_uncertainty','rms','region','earth_model',
+            'method','event_type','magnitude','magnitude_type','picker','network','station','location'],how='left',suffixes=("_p", "_s"))
+            # df.to_csv("")
+
+        if self.query in ("event","Event","EVENT","events","EVENTS"):
             df = simple_query
 
         if sort != None:   
-            df = df.sort_values(by=sort,ascending=True)
+            df = df.sort_values(by=sort,ascending=True,ignore_index=True)
         if to_csv != None:
+            if os.path.isdir(os.path.dirname(to_csv)):
+                pass
+            else:
+                os.makedirs(os.path.dirname(to_csv))
+
             with open(to_csv,'w') as csv:   
                 csv.write(f'#{self.info}\n')
             df.to_csv(to_csv, mode='a')
@@ -89,6 +123,11 @@ class Query(object):
         if sort != None:   
             df = df.sort_values(by=sort,ascending=True)
         if to_csv != None:
+            if os.path.isdir(os.path.dirname(to_csv)):
+                pass
+            else:
+                os.makedirs(os.path.dirname(to_csv))
+
             with open(to_csv,'w') as csv:   
                 csv.write(f'#{self.info}\n')
             df.to_csv(to_csv, mode='a')
@@ -122,6 +161,11 @@ class Query(object):
         if sort != None:   
             df = df.sort_values(by=sort,ascending=True)
         if to_csv != None:
+            if os.path.isdir(os.path.dirname(to_csv)):
+                pass
+            else:
+                os.makedirs(os.path.dirname(to_csv))
+                
             with open(to_csv,'w') as csv:   
                 csv.write(f'#{self.info}\n')
             df.to_csv(to_csv, mode='a')
@@ -137,18 +181,19 @@ if __name__ == "__main__":
 ## GLOBAL VARIBALES
     picks =True 
     events = False
-    start = "20191201 000000"
-    end =   "20210101 000000"
+    start = "20160101 000000"
+    # end =   "20200901 000000"
+    end =   "20160102 000000"
     output_path = "/home/ecastillo/tesis/catalog/manual/events/"
-    agency = "SGC"
+    agency = "VMMmanual"
 
     lat = 6.81
     lon = -73.17
     ratio = 120
     min_mag =  -0.2
     max_mag = 10
-    min_prof =  120
-    max_prof = 160
+    min_prof =  -5
+    max_prof = 260
 
     # ## GLOBAL VARIBALES
     # picks = True
@@ -199,11 +244,12 @@ if __name__ == "__main__":
         name = f"{agency}_picks_{_startname}_{_endname}.csv"
         csv_path = os.path.join(output_path,name)
         
+
         picks = Query(MySQLdb_dict,"picks").simple_SQLquery(
                                                     start, end, 
                                                     min_mag, max_mag, 
                                                     min_prof, max_prof,
-                                                    None, "sgc_public",
-                                                    ['time_event'],
+                                                    None, VMM_stations,
+                                                    ['time_event'],"left",
                                                     csv_path)
         print(picks)

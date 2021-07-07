@@ -5,6 +5,7 @@ from obspy import UTCDateTime
 from datetime import timedelta
 
 pick_codex = os.path.join(os.getcwd(),"query_picks.txt")
+single_pick_codex = os.path.join(os.getcwd(),"query_single_picks.txt")
 event_codex = os.path.join(os.getcwd(),"query_events.txt")
 
 def get_text2php(from_text,rm_line=None, add_line=None):
@@ -60,22 +61,36 @@ def get_text2php(from_text,rm_line=None, add_line=None):
 
     return text
 
-def get_fulltime(sql):
+def get_fulltime(sql,single=False):
     df = pd.DataFrame(sql)
     df.index+=1
     df.index.name= 'No'
-    df['time_pick_p'] = df.apply(lambda x: get_timepick(x,'p'), axis=1).astype(str)
-    df['time_pick_s'] = df.apply(lambda x: get_timepick(x,'s'), axis=1).astype(str)
-    df = df.drop(columns=['time_ms_pick_p','time_ms_pick_s'])
 
-    df[f'time_pick_p'] = pd.to_datetime(df[f'time_pick_p'], format='%Y-%m-%dT%H:%M:%S.%f') 
-    df[f'time_pick_s'] = pd.to_datetime(df[f'time_pick_s'], format='%Y-%m-%dT%H:%M:%S.%f') 
+    if single:
+        df['time_pick'] = df.apply(lambda x: get_timepick(x,None), axis=1).astype(str)
+        df = df.drop(columns=['time_ms_pick'])
+        df[f'time_pick'] = pd.to_datetime(df[f'time_pick'], format='%Y-%m-%dT%H:%M:%S.%f') 
+
+    else:
+        df['time_pick_p'] = df.apply(lambda x: get_timepick(x,'p'), axis=1).astype(str)
+        df['time_pick_s'] = df.apply(lambda x: get_timepick(x,'s'), axis=1).astype(str)
+        df = df.drop(columns=['time_ms_pick_p','time_ms_pick_s'])
+
+        df[f'time_pick_p'] = pd.to_datetime(df[f'time_pick_p'], format='%Y-%m-%dT%H:%M:%S.%f') 
+        df[f'time_pick_s'] = pd.to_datetime(df[f'time_pick_s'], format='%Y-%m-%dT%H:%M:%S.%f') 
+    
+    
     return df
 
 def get_timepick(df,pick):
+
+    if pick == None:
+        pick = df[f'time_pick'] + \
+            timedelta(milliseconds=float(df[f'time_ms_pick']/1000))
+    else:
         pick = df[f'time_pick_{pick}'] + \
-             timedelta(milliseconds=float(df[f'time_ms_pick_{pick}']/1000))
-        return UTCDateTime(pick)
+            timedelta(milliseconds=float(df[f'time_ms_pick_{pick}']/1000))
+    return UTCDateTime(pick)
 
 def str2datetime(mydatetime):
     date,hour = mydatetime.split()
@@ -85,7 +100,8 @@ def str2datetime(mydatetime):
 class QueryHelper(object):
     def __init__(self,query,initial_date,final_date,  
                     min_mag,max_mag,min_prof,max_prof,
-                    event_type=None,station_list=None):
+                    event_type=None,station_list=None,
+                    pick="P"):
         """
         Parameters:
         -----------
@@ -116,6 +132,11 @@ class QueryHelper(object):
         self.event_type = event_type
         self.station_list = station_list
 
+        self.__singleP_eventtype_lines = [38] #42 in where
+        self.__singleP_radialquery_lines = [15,41] #7 in select, 45 in where
+        self.__singleP_stationlist_lines = [38] #42 in where
+        self.__singleP_idquery_lines = [38] #40 in where
+
         self.__P_eventtype_lines = [46] #42 in where
         self.__P_radialquery_lines = [15,49] #7 in select, 45 in where
         self.__P_stationlist_lines = [46] #42 in where
@@ -128,6 +149,8 @@ class QueryHelper(object):
 
         if self.query in ("pick","PICK","Pick","picks","Picks"):
             query_text = open(pick_codex,"r", encoding="latin-1").readlines()
+        elif self.query in ("single_pick","single_PICK","single_Pick","single_picks","single_Picks"):
+            query_text = open(single_pick_codex,"r", encoding="latin-1").readlines()
         elif self.query in ("event","Event","EVENT","events","EVENTS"):
             self.station_list = None
             query_text = open(event_codex,"r", encoding="latin-1").readlines()
@@ -139,13 +162,19 @@ class QueryHelper(object):
                                 f'{self.min_prof}',f'{self.max_prof}',
                                 f'"{self.initial_date}"',
                                 f'"{self.final_date}"')
+
+        if pick != None:
+            self.query_text = self.query_text.replace("left join Arrival A_p on A_p._parent_oid=Origin._oid and A_p.phase_code = 'P'",
+                                                      f"left join Arrival A_p on A_p._parent_oid=Origin._oid and A_p.phase_code = '{pick}'")
+        print(self.query_text)
         
-    
     def __add_event_type(self,event_type):
         condition = ("Event.type = '%s' AND")%(event_type)
 
         if self.query in ("pick","PICK","Pick","picks","Picks"):
             lines = self.__P_eventtype_lines
+        if self.query in ("single_pick","single_PICK","single_Pick","single_picks","single_Picks"):
+            lines = self.__singleP_eventtype_lines
         elif self.query in ("event","Event","EVENT","events","EVENTS"):
             lines = self.__E_eventtype_lines
 
@@ -157,7 +186,9 @@ class QueryHelper(object):
         condition = "HAVING radio < %s;"
         condition = condition%(radio)
         if self.query in ("pick","PICK","Pick","picks","Picks"):
-                lines = self.__P_radialquery_lines
+            lines = self.__P_radialquery_lines
+        if self.query in ("single_pick","single_PICK","single_Pick","single_picks","single_Picks"):
+            lines = self.__singleP_radialquery_lines
         elif self.query in ("event","Event","EVENT","events","EVENTS"):
             lines = self.__E_radialquery_lines
         return [(lines[0],select),(lines[1],condition)]
@@ -171,7 +202,10 @@ class QueryHelper(object):
         condition = ("pick_p.waveformID_stationCode in %s AND")%(station_list)
 
         if self.query in ("pick","PICK","Pick","picks","Picks"):
-                lines = self.__P_stationlist_lines
+            lines = self.__P_stationlist_lines
+        elif self.query in ("single_pick","single_PICK","single_Pick","single_picks","single_Picks"):
+            condition = ("pick.waveformID_stationCode in %s AND")%(station_list)
+            lines = self.__singleP_stationlist_lines
         elif self.query in ("event","Event","EVENT","events","EVENTS"):
             lines = self.__E_stationlist_lines
 
@@ -180,7 +214,9 @@ class QueryHelper(object):
     def __add_id_query(self,loc_id):
         condition = "POEv.PublicID = '%s' AND"%(loc_id)
         if self.query in ("pick","PICK","Pick","picks","Picks"):
-                lines = self.__P_stationlist_lines
+            lines = self.__P_stationlist_lines
+        if self.query in ("single_pick","single_PICK","single_Pick","single_picks","single_Picks"):
+            lines = self.__singleP_stationlist_lines
         elif self.query in ("event","Event","EVENT","events","EVENTS"):
             lines = self.__E_stationlist_lines
         return [(lines[0],condition)]
