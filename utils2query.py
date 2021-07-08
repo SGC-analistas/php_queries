@@ -4,9 +4,10 @@ import pandas as pd
 from obspy import UTCDateTime
 from datetime import timedelta
 
-pick_codex = os.path.join(os.getcwd(),"query_picks.txt")
-single_pick_codex = os.path.join(os.getcwd(),"query_single_picks.txt")
-event_codex = os.path.join(os.getcwd(),"query_events.txt")
+ROOT_DIR = os.path.dirname(__file__)
+pick_codex = os.path.join(ROOT_DIR,"query_picks.txt")
+single_pick_codex = os.path.join(ROOT_DIR,"query_single_picks.txt")
+event_codex = os.path.join(ROOT_DIR,"query_events.txt")
 
 def get_text2php(from_text,rm_line=None, add_line=None):
     """
