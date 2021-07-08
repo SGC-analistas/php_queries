@@ -154,6 +154,7 @@ class QueryHelper(object):
         elif self.query in ("event","Event","EVENT","events","EVENTS"):
             self.station_list = None
             query_text = open(event_codex,"r", encoding="latin-1").readlines()
+            pick = None
         else:
             raise Exception("query= 'pick' or 'Event'")
         
@@ -166,10 +167,15 @@ class QueryHelper(object):
         if pick != None:
             self.query_text = self.query_text.replace("left join Arrival A_p on A_p._parent_oid=Origin._oid and A_p.phase_code = 'P'",
                                                       f"left join Arrival A_p on A_p._parent_oid=Origin._oid and A_p.phase_code = '{pick}'")
-        print(self.query_text)
+        # print(self.query_text)
         
     def __add_event_type(self,event_type):
-        condition = ("Event.type = '%s' AND")%(event_type)
+        if len(event_type) == 1:
+            event_type = f"('{event_type[0]}')"
+        else:
+            event_type = str(tuple(event_type))
+
+        condition = ("Event.type in %s AND")%(event_type)
 
         if self.query in ("pick","PICK","Pick","picks","Picks"):
             lines = self.__P_eventtype_lines
@@ -212,7 +218,13 @@ class QueryHelper(object):
         return [(lines[0],condition)]
 
     def __add_id_query(self,loc_id):
-        condition = "POEv.PublicID = '%s' AND"%(loc_id)
+
+        if len(loc_id) == 1:
+            loc_id = f"('{loc_id[0]}')"
+        else:
+            loc_id = str(tuple(loc_id))
+
+        condition = "POEv.PublicID in %s AND"%(loc_id)
         if self.query in ("pick","PICK","Pick","picks","Picks"):
             lines = self.__P_stationlist_lines
         if self.query in ("single_pick","single_PICK","single_Pick","single_picks","single_Picks"):

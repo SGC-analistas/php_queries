@@ -1,12 +1,15 @@
-#By Emmanuel David Castillo Taborda - ecastillo@sgc.gov.co
-import MySQLdb
-import csv
+# /**
+#  * @author Emmanuel Castillo
+#  * @email ecastillot@unal.edu.co / ecastillo@sgc.gov.co
+#  * @create date 2021-07-08 06:55:32
+#  * @modify date 2021-07-08 06:55:32
+#  * @desc [description]
+#  */
+
+import pymysql as MySQLdb
 import os
-import json
-from datetime import timedelta
 import pandas as pd
 import utils2query as utq
-from obspy import UTCDateTime
 
 SGC_PUBLIC_STATIONS = ['APAC','AGCC','ARGC','ARMEC','BAR2','BBAC','BET','BOG',
                     'BRJC','CAP2','CCALA','CBETA','CBOC','CHI','CLBC','CLEJA','CPOP2',
@@ -49,47 +52,53 @@ class Query(object):
         if station_list == "sgc_public":
             station_list = SGC_PUBLIC_STATIONS 
 
-        if merge_picks == "inner":
-
-            query = utq.QueryHelper(self.query,initial_date, final_date, 
-                                min_mag, max_mag, min_prof, max_prof,
-                                event_type,station_list)
-            codex = query.simple_query()
-            simple_query = pd.read_sql_query(codex,self.MySQLdb)
-            df = utq.get_fulltime(simple_query)
-        else:
-            dfs = {}
-            for phase in ['P','S']:
-
-                query = utq.QueryHelper("single_picks",initial_date, final_date, 
-                                    min_mag, max_mag, min_prof, max_prof,
-                                    event_type,station_list,phase)
-                codex = query.simple_query()
-                simple_query = pd.read_sql_query(codex,self.MySQLdb)
-
-                df = utq.get_fulltime(simple_query,True)
-                # df.rename(columns={ 'time_pick':f'time_pick_{phase.lower()}',
-                #                 'time_ms_pick':f'time_ms_pick_{phase.lower()}',
-                #                 'pick':f'pick_{phase.lower()}'}, inplace=True)
-                # df.to_csv(f"/home/ecastillo/tesis/catalog/manual/events/{phase}.csv")
-                dfs[phase] = df
-                # dfs.append(df)
-
-            df = pd.merge(dfs["P"],dfs["S"],on=['agency','id','time_event','latitude','latitude_uncertainty',
-            'longitude','longitude_uncertainty','depth','depth_uncertainty','rms','region','earth_model',
-            'method','event_type','magnitude','magnitude_type','picker','network','station','location'],how='left',suffixes=("_p", "_s"))
-            # df.to_csv("")
 
         if self.query in ("event","Event","EVENT","events","EVENTS"):
-            df = simple_query
+            query = utq.QueryHelper(self.query,initial_date, final_date, 
+                                    min_mag, max_mag, min_prof, max_prof,
+                                    event_type,station_list)
+            codex = query.simple_query()
+            df = pd.read_sql_query(codex,self.MySQLdb)
+        else:
+            if merge_picks == "inner":
+
+                query = utq.QueryHelper(self.query,initial_date, final_date, 
+                                    min_mag, max_mag, min_prof, max_prof,
+                                    event_type,station_list)
+                codex = query.simple_query()
+                simple_query = pd.read_sql_query(codex,self.MySQLdb)
+                df = utq.get_fulltime(simple_query)
+            else:
+                dfs = {}
+                for phase in ['P','S']:
+
+                    query = utq.QueryHelper("single_picks",initial_date, final_date, 
+                                        min_mag, max_mag, min_prof, max_prof,
+                                        event_type,station_list,phase)
+                    codex = query.simple_query()
+                    simple_query = pd.read_sql_query(codex,self.MySQLdb)
+
+                    df = utq.get_fulltime(simple_query,True)
+                    # df.rename(columns={ 'time_pick':f'time_pick_{phase.lower()}',
+                    #                 'time_ms_pick':f'time_ms_pick_{phase.lower()}',
+                    #                 'pick':f'pick_{phase.lower()}'}, inplace=True)
+                    # df.to_csv(f"/home/ecastillo/tesis/catalog/manual/events/{phase}.csv")
+                    dfs[phase] = df
+                    # dfs.append(df)
+
+                df = pd.merge(dfs["P"],dfs["S"],on=['agency','id','time_event','latitude','latitude_uncertainty',
+                'longitude','longitude_uncertainty','depth','depth_uncertainty','rms','region','earth_model',
+                'method','event_type','magnitude','magnitude_type','picker','network','station','location'],how='left',suffixes=("_p", "_s"))
+                # df.to_csv("")
+
 
         if sort != None:   
             df = df.sort_values(by=sort,ascending=True,ignore_index=True)
         if to_csv != None:
-            if os.path.isdir(os.path.dirname(to_csv)):
+            if os.path.isdir(os.path.dirname(os.path.realpath(to_csv))):
                 pass
             else:
-                os.makedirs(os.path.dirname(to_csv))
+                os.makedirs(os.path.dirname(os.path.realpath(to_csv)))
 
             with open(to_csv,'w') as csv:   
                 csv.write(f'#{self.info}\n')
@@ -123,10 +132,10 @@ class Query(object):
         if sort != None:   
             df = df.sort_values(by=sort,ascending=True)
         if to_csv != None:
-            if os.path.isdir(os.path.dirname(to_csv)):
+            if os.path.isdir(os.path.dirname(os.path.realpath(to_csv))):
                 pass
             else:
-                os.makedirs(os.path.dirname(to_csv))
+                os.makedirs(os.path.dirname(os.path.realpath(to_csv)))
 
             with open(to_csv,'w') as csv:   
                 csv.write(f'#{self.info}\n')
@@ -161,10 +170,10 @@ class Query(object):
         if sort != None:   
             df = df.sort_values(by=sort,ascending=True)
         if to_csv != None:
-            if os.path.isdir(os.path.dirname(to_csv)):
+            if os.path.isdir(os.path.dirname(os.path.realpath(to_csv))):
                 pass
             else:
-                os.makedirs(os.path.dirname(to_csv))
+                os.makedirs(os.path.dirname(os.path.realpath(to_csv)))
                 
             with open(to_csv,'w') as csv:   
                 csv.write(f'#{self.info}\n')
@@ -181,11 +190,11 @@ if __name__ == "__main__":
 ## GLOBAL VARIBALES
     picks =True 
     events = False
-    start = "20160101 000000"
+    start = "20191201 000000"
     # end =   "20200901 000000"
-    end =   "20160102 000000"
+    end =   "20191202 000000"
     output_path = "/home/ecastillo/tesis/catalog/manual/events/"
-    agency = "VMMmanual"
+    agency = "RSNCmanual"
 
     lat = 6.81
     lon = -73.17
@@ -249,7 +258,8 @@ if __name__ == "__main__":
                                                     start, end, 
                                                     min_mag, max_mag, 
                                                     min_prof, max_prof,
-                                                    None, VMM_stations,
+                                                    None, SGC_PUBLIC_STATIONS,
                                                     ['time_event'],"left",
                                                     csv_path)
+        
         print(picks)
