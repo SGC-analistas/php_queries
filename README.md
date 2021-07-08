@@ -41,7 +41,8 @@ En los archivos '.ipynb' se muestra como usarlo en otros códigos. Si necesita c
 
 
 ### Comandos
-Con +m se indica el modo 'picks' o 'events', +s se indica la fecha inicial, +e la fecha final en , +m_mag 
+
+```bash
 +h, ++help            show this help message and exit
     
   REQUERIDOS:
@@ -59,7 +60,7 @@ Con +m se indica el modo 'picks' o 'events', +s se indica la fecha inicial, +e l
   +sta  [ ...], ++station_list  [ ...]  BAR2 RUS PTB
   +id  [ ...], ++id  [ ...]  SGC2019xqwwuh SGC2019xpcvv
   +r  [ ...], ++radial  [ ...] Se debe especificar: lat lon r. Ejemplo: 6.81 -73.17 120
-
+```
 
 ### Ejemplos
 
