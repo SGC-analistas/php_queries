@@ -4,7 +4,7 @@
 
 Rutina realizada para realizar consulta a la base de datos. (Se puede hacer simple, por id o radial). Revisar las isntrucciones.  
 
-![OUT](images/out.png)<!-- .element width="700"-->
+![OUT](images/out.png)<!-- .element width="300"-->
 
 ## 1. Instalación en linux
 
@@ -12,23 +12,23 @@ Rutina realizada para realizar consulta a la base de datos. (Se puede hacer simp
 Se corre en sistemas linux.
 
 ### - Python
+#### Instalación con pip 
 Python Versión 3.7 en adelante. (Usaremos como ejemplo python 3.8)
 ```bash
 sudo apt-get install python3.7 (o 3.8)
 ```
-
 Tener virtualenv en python.
 ```bash
 python3.7 -m pip install virtualenv
 ```
 
-#### Instalación con pip 
+
 ```bash
 python3.7 -m virtualenv .query
 source .query/bin/activate
 pip install -r requirements.txt
 ```
-#### Instalación con pip 
+#### Instalación con anaconda 
 ```bash
 conda env create -f enviroment.yml
 conda activate php_query
