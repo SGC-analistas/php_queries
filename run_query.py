@@ -72,6 +72,12 @@ def read_args():
                         nargs='+',
                         metavar='',
                         help="Se debe especificar: lat lon  r. Ejemplo: 6.81 -73.17 120")
+
+    parser.add_argument(prefix+"mysqldb",prefix*2+"mysqldb",
+                        default=None,
+                        nargs='+',
+                        metavar='',
+                        help="Se debe especificar: host user passwd db. Ejemplo: 10.100.100.232 consulta consulta seiscomp3")
     
 
 
@@ -82,13 +88,17 @@ def read_args():
     return args
 
 if __name__ == "__main__":
-    host = "10.100.100.232"
-    user="consulta"
-    passwd="consulta"
-    db="seiscomp3"
-    MySQLdb_dict= {'host':host, 'user':user, 'passwd':passwd, 'db': db}
-
     args = read_args()
+    if args.mysqldb != None:
+        MySQLdb_dict= {'host':args.mysqldb[0], 'user':args.mysqldb[1],
+            'passwd':args.mysqldb[2], 'db': args.mysqldb[3]}
+    else:
+        host = "10.100.100.232"
+        user="consulta"
+        passwd="consulta"
+        db="seiscomp3"
+        MySQLdb_dict= {'host':host, 'user':user, 'passwd':passwd, 'db': db}
+
     if args.radial != None:
         myquery = qy.Query(MySQLdb_dict,args.mode)
         q = myquery.radial_SQLquery(lat=args.radial[0],lon=args.radial[1],ratio=args.radial[2],

@@ -60,6 +60,8 @@ En los archivos '.ipynb' se muestra como usarlo en otros códigos. Si necesita c
   +sta  [ ...], ++station_list  [ ...]  BAR2 RUS PTB
   +id  [ ...], ++id  [ ...]  SGC2019xqwwuh SGC2019xpcvv
   +r  [ ...], ++radial  [ ...] Se debe especificar: lat lon r. Ejemplo: 6.81 -73.17 120
+  +mysqldb  [ ...], ++mysqldb  [ ...] Se debe especificar: host user passwd db. 
+                            Ejemplo: 10.100.100.232 consulta consulta seiscomp3
 ```
 
 ### Ejemplos
@@ -70,6 +72,11 @@ En los archivos '.ipynb' se muestra como usarlo en otros códigos. Si necesita c
 
 ```bash
 python run_query.py +m picks +s 20191201T000000 +e 20191202T000000 +m_mag 0 +M_mag 8 +m_prof -5 +M_prof 250 +o prove.csv
+```
+- simple: servidor 13
+
+```bash
+python run_query.py +m picks +s 20191201T000000 +e 20191202T000000 +m_mag 0 +M_mag 8 +m_prof -5 +M_prof 250 +mysqldb 10.100.100.232 consulta consulta seiscomp3 +o prove.csv
 ```
 
 - id
