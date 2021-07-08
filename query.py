@@ -103,6 +103,7 @@ class Query(object):
             with open(to_csv,'w') as csv:   
                 csv.write(f'#{self.info}\n')
             df.to_csv(to_csv, mode='a')
+            print(f"\nCSV output: {to_csv}")
         return df
 
     def id_SQLquery(self,loc_id, initial_date, final_date, 
@@ -140,6 +141,7 @@ class Query(object):
             with open(to_csv,'w') as csv:   
                 csv.write(f'#{self.info}\n')
             df.to_csv(to_csv, mode='a')
+            print(f"\nCSV output: {to_csv}")
         return df
 
     def radial_SQLquery(self,lat, lon, ratio, initial_date, final_date, 
@@ -178,6 +180,7 @@ class Query(object):
             with open(to_csv,'w') as csv:   
                 csv.write(f'#{self.info}\n')
             df.to_csv(to_csv, mode='a')
+            print(f"\nCSV output: {to_csv}")
         return df
 
 if __name__ == "__main__":
