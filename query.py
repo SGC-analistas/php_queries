@@ -30,6 +30,14 @@ VMM_stations = ['AGCC','EZNC','SNPBC','MORC','OCNC','SML1C','VMM05','VMM06',
 
 class Query(object):
     def __init__(self,MySQLdb_dict,query):
+        """
+        Parameters:
+        -----------
+        MySQLdb_dict: dict
+            MySQLdb_dict= {'host':host, 'user':user, 'passwd':passwd, 'db': db}
+        query: str
+            picks or events
+        """
         self.MySQLdb_dict= MySQLdb_dict
         self.query = query
 
@@ -43,6 +51,29 @@ class Query(object):
                         min_mag, max_mag, min_prof, max_prof,
                         event_type=None,station_list=None,
                         sort = None,merge_picks="inner",to_csv=None):
+
+        """
+        Parameters:
+        -----------
+        initial_date: str
+            initial date in the next format : YYYYMMDD HHMMSS
+        final_date: str 
+            final date in the next format : YYYYMMDD HHMMSS
+        min_mag: int
+            minimum magnitude
+        max_mag: int
+            maximum magnitude
+        min_prof: int
+            minimum depth
+        max_prof
+            maximum depth
+        event_type: list
+            "earthquake" or "not locatable" etc
+        station_list: list
+            Only select stations located in station_list
+        to_csv: str
+            path
+        """
 
         self.info = f'initial_date={initial_date},final_date={final_date},'+\
             f'min_mag={min_mag},max_mag={max_mag},'+\
@@ -110,6 +141,32 @@ class Query(object):
                       min_mag, max_mag, min_prof, max_prof, 
                       event_type=None,station_list=None,
                       sort = None,to_csv=None):
+
+        """
+        Parameters:
+        -----------
+        loc_id: list
+            list of ids
+        initial_date: str
+            initial date in the next format : YYYYMMDD HHMMSS
+        final_date: str 
+            final date in the next format : YYYYMMDD HHMMSS
+        min_mag: int
+            minimum magnitude
+        max_mag: int
+            maximum magnitude
+        min_prof: int
+            minimum depth
+        max_prof
+            maximum depth
+        event_type: list
+            "earthquake" or "not locatable" etc
+        station_list: list
+            Only select stations located in station_list
+        to_csv: str
+            path
+        """
+
         self.info = f'ID={loc_id}'+\
             f'initial_date={initial_date},final_date={final_date},'+\
             f'min_mag={min_mag},max_mag={max_mag},'+\
@@ -148,6 +205,35 @@ class Query(object):
                       min_mag, max_mag, min_prof, max_prof, 
                       event_type=None,station_list=None,
                       sort = None,to_csv=None):
+        
+        """
+        Parameters:
+        -----------
+        lat: float
+            latitude
+        lon: float 
+            longitude
+        ratio: float
+            ratio
+        initial_date: str
+            initial date in the next format : YYYYMMDD HHMMSS
+        final_date: str 
+            final date in the next format : YYYYMMDD HHMMSS
+        min_mag: int
+            minimum magnitude
+        max_mag: int
+            maximum magnitude
+        min_prof: int
+            minimum depth
+        max_prof
+            maximum depth
+        event_type: list
+            "earthquake" or "not locatable" etc
+        station_list: list
+            Only select stations located in station_list
+        to_csv: str
+            path
+        """
 
         self.info = f'lat={lat},lon={lon},ratio={ratio},'+\
             f'initial_date={initial_date},final_date={final_date},'+\

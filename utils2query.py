@@ -118,7 +118,7 @@ class QueryHelper(object):
             minimum depth
         max_prof
             maximum depth
-        event_type: str
+        event_type: list
             "earthquake" or "not locatable" etc
         station_list: list
             Only select stations located in station_list
