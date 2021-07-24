@@ -1,5 +1,6 @@
 Select Origin.creationInfo_agencyID as agency, 
         POEv.publicID as id, 
+        Origin.creationInfo_author as picker,
         Origin.time_value as time_event, 
         round(Origin.latitude_value,2) as latitude,
         round(Origin.longitude_value,2) as longitude,
