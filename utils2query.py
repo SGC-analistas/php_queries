@@ -143,7 +143,7 @@ class QueryHelper(object):
         self.__P_stationlist_lines = [46] #42 in where
         self.__P_idquery_lines = [46] #40 in where
 
-        self.__E_eventtype_lines = [22] #42 in where
+        self.__E_eventtype_lines = [23] #42 in where
         self.__E_radialquery_lines = [7,27] #7 in select, 26 in where
         self.__E_stationlist_lines = [22] #42 in where
         self.__E_idquery_lines = [22] #40 in where
